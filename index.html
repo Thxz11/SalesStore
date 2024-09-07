@@ -1,0 +1,166 @@
+[08:35, 9/7/2024] Miguel Barbosa: <!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SalesHub - Cursos e E-books</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>SalesHub</h1>
+        <nav>
+            <ul>
+                <li><a href="#cursos">Cursos</a></li>
+                <li><a href="#ebooks">E-books</a></li>
+                <li><a href="#carrinho">Carrinho</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section id="cursos">
+            <h2>Cursos</h2>
+            <div class="product">
+                <h3>Curso de Marketing Digital</h3>
+                <p>R$ 19,90,00</p>
+                <button onclick="adicionarAoCarrinho('Curso de Marketing Digital', 199)">Adicionar ao carrinho</button>
+            </div>
+            <!-- Mais cursos -->
+        </section>
+
+        <section id="ebooks">
+            <h2>E-books</h2>
+            <div class="product">
+                <h3>E-book: Como Investir em Ações</h3>
+                <p>R$ 25,00</p>
+                <button onclick="adicionarAoCarrinho('E-book: Como Investir em Ações', 49)">Adicionar ao carrinho</button>
+            </div>
+            <!-- Mais e-books -->
+        </section>
+
+        <section id="carrinho">
+            <h2>Carrinho de Compras</h2>
+            <div id="cart-items"></div>
+            <p>Total: R$ <span id="cart-total">0</span></p>
+            <button id="checkout-button">Finalizar Compra</button>
+        </section>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
+[08:35, 9/7/2024] Miguel Barbosa: body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+header {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px;
+    text-align: center;
+}
+
+nav ul {
+    list-style: none;
+    padding: 0;
+}
+
+nav ul li {
+    display: inline;
+    margin: 0 10px;
+}
+
+main {
+    padding: 20px;
+}
+
+.product {
+    border: 1px solid #ddd;
+    padding: 10px;
+    margin: 10px 0;
+}
+
+button {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px;
+    border: none;
+    cursor: pointer;
+}
+[08:35, 9/7/2024] Miguel Barbosa: let carrinho = [];
+let total = 0;
+
+function adicionarAoCarrinho(produto, preco) {
+    carrinho.push({ produto, preco });
+    total += preco;
+    atualizarCarrinho();
+}
+
+function atualizarCarrinho() {
+    let cartItems = document.getElementById('cart-items');
+    let cartTotal = document.getElementById('cart-total');
+    
+    cartItems.innerHTML = '';
+    carrinho.forEach(item => {
+        cartItems.innerHTML += <p>${item.produto} - R$ ${item.preco}</p>;
+    });
+    
+    cartTotal.textContent = total;
+}
+
+document.getElementById('checkout-button').addEventListener('click', () => {
+    // Integração com sistema de pagamento
+    alert('Compra finalizada! Total: R$ ' + total);
+});
+[08:35, 9/7/2024] Miguel Barbosa: npm install stripe express body-parser
+[08:36, 9/7/2024] Miguel Barbosa: const express = require('express');
+const bodyParser = require('body-parser');
+const stripe = require('stripe')('sua_chave_secreta_do_stripe');
+
+const app = express();
+app.use(bodyParser.json());
+
+app.post('/checkout', async (req, res) => {
+    const { items } = req.body;
+
+    // Criação de uma sessão de pagamento no Stripe
+    const session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        line_items: items.map(item => ({
+            price_data: {
+                currency: 'brl',
+                product_data: {
+                    name: item.produto,
+                },
+                unit_amount: item.preco * 100, // Converter para centavos
+            },
+            quantity: 1,
+        })),
+        mode: 'payment',
+        success_url: 'http://localhost:3000/sucesso',
+        cancel_url: 'http://localhost:3000/cancelar',
+    });
+
+    res.json({ id: session.id });
+});
+
+app.listen(3000, () => {
+    console.log('Servidor rodando na porta 3000');
+});
+[08:36, 9/7/2024] Miguel Barbosa: document.getElementById('checkout-button').addEventListener('click', async () => {
+    const response = await fetch('/checkout', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            items: carrinho,
+        }),
+    });
+    const session = await response.json();
+    window.location.href = session.url;
+});
